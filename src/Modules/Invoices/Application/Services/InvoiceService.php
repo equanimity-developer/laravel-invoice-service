@@ -12,9 +12,8 @@ use Modules\Invoices\Domain\Repositories\InvoiceRepositoryInterface;
 use Modules\Notifications\Api\Dtos\NotifyData;
 use Modules\Notifications\Api\NotificationFacadeInterface;
 use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidInterface;
 
-final class InvoiceService implements InvoiceServiceInterface
+final readonly class InvoiceService implements InvoiceServiceInterface
 {
     public function __construct(
         private InvoiceRepositoryInterface $invoiceRepository,
@@ -26,69 +25,69 @@ final class InvoiceService implements InvoiceServiceInterface
     {
         $id = Uuid::uuid4();
         $invoice = Invoice::create($id, $customerName, $customerEmail);
-        
+
         $this->invoiceRepository->save($invoice);
-        
+
         return $this->mapToDto($invoice);
     }
-    
+
     public function getInvoice(string $id): ?InvoiceDto
     {
         $invoice = $this->invoiceRepository->findById(Uuid::fromString($id));
-        
+
         if (!$invoice) {
             return null;
         }
-        
+
         return $this->mapToDto($invoice);
     }
-    
+
     /**
      * @return InvoiceDto[]
      */
     public function getAllInvoices(): array
     {
         $invoices = $this->invoiceRepository->findAll();
-        
+
         return array_map(fn (Invoice $invoice): InvoiceDto => $this->mapToDto($invoice), $invoices);
     }
-    
+
     public function addProductLine(
-        string $invoiceId, 
-        string $productName, 
-        int $quantity, 
+        string $invoiceId,
+        string $productName,
+        int $quantity,
         int $unitPrice
     ): ?InvoiceDto {
         $invoice = $this->invoiceRepository->findById(Uuid::fromString($invoiceId));
-        
+
         if (!$invoice) {
             return null;
         }
-        
+
         $productLine = new ProductLine(
             Uuid::uuid4(),
             $productName,
             $quantity,
             $unitPrice
         );
-        
+
         $invoice->addProductLine($productLine);
-        
+
         $this->invoiceRepository->save($invoice);
-        
+
         return $this->mapToDto($invoice);
     }
-    
+
     public function sendInvoice(string $invoiceId): ?InvoiceDto
     {
         $invoice = $this->invoiceRepository->findById(Uuid::fromString($invoiceId));
-        
+
         if (!$invoice) {
             return null;
         }
-        
+
         $invoice->send();
-        
+
         // Send email notification
         $this->notificationFacade->notify(
             new NotifyData(
@@ -98,28 +97,28 @@ final class InvoiceService implements InvoiceServiceInterface
                 message: "Dear {$invoice->customerName()}, your invoice has been sent.",
             )
         );
-        
+
         $this->invoiceRepository->save($invoice);
-        
+
         return $this->mapToDto($invoice);
     }
-    
+
     public function markAsSentToClient(string $id): ?InvoiceDto
     {
         $resourceId = Uuid::fromString($id);
         $invoice = $this->invoiceRepository->findById($resourceId);
-        
+
         if (!$invoice) {
             return null;
         }
-        
+
         $invoice->markAsSentToClient();
-        
+
         $this->invoiceRepository->save($invoice);
-        
+
         return $this->mapToDto($invoice);
     }
-    
+
     private function mapToDto(Invoice $invoice): InvoiceDto
     {
         $productLineDtos = array_map(
@@ -132,7 +131,7 @@ final class InvoiceService implements InvoiceServiceInterface
             ),
             $invoice->productLines()
         );
-        
+
         return new InvoiceDto(
             $invoice->id()->toString(),
             $invoice->status()->value,
@@ -142,4 +141,4 @@ final class InvoiceService implements InvoiceServiceInterface
             $invoice->totalPrice()
         );
     }
-} 
+}

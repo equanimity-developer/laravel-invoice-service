@@ -42,9 +42,5 @@ final class InvoiceServiceProvider extends ServiceProvider
             ResourceDeliveredEvent::class,
             [ResourceDeliveredListener::class, 'handle']
         );
-        
-        // In DDD architecture, the Presentation layer should handle all external API endpoints,
-        // not the Infrastructure layer. The routes are now defined in the Presentation layer.
-        // $this->loadRoutesFrom(__DIR__ . '/../routes.php');
     }
 }
