@@ -13,6 +13,8 @@ use Modules\Invoices\Domain\Exceptions\InvalidInvoiceStatusTransitionException;
 use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
 use Tests\InMemoryDatabaseTrait;
 use Tests\TestCase;
+use Faker\Factory;
+use Faker\Generator;
 
 final class InvoiceControllerTest extends TestCase
 {
@@ -229,6 +231,38 @@ final class InvoiceControllerTest extends TestCase
             ->assertJsonValidationErrors(['product_name', 'quantity', 'unit_price']);
     }
 
+    public function testAddProductLineReturnsBadRequestWhenProductLineIsInvalid(): void
+    {
+        // Arrange
+        $invoiceId = $this->faker->uuid;
+        $errorMessage = 'Invalid product line: quantity must be positive';
+        $requestData = [
+            'product_name' => $this->faker->word,
+            'quantity' => 1, // Valid for validation, but will trigger exception in service
+            'unit_price' => $this->faker->numberBetween(100, 1000),
+        ];
+        
+        $this->mock(InvoiceServiceInterface::class)
+            ->shouldReceive('addProductLine')
+            ->once()
+            ->with(
+                $invoiceId,
+                $requestData['product_name'],
+                $requestData['quantity'],
+                $requestData['unit_price']
+            )
+            ->andThrow(new InvalidProductLineException($errorMessage));
+
+        // Act
+        $response = $this->postJson("/api/invoices/{$invoiceId}/product-lines", $requestData);
+
+        // Assert
+        $response->assertStatus(400)
+            ->assertJson([
+                'error' => $errorMessage
+            ]);
+    }
+
     public function testSend(): void
     {
         // Arrange
@@ -275,6 +309,50 @@ final class InvoiceControllerTest extends TestCase
         $response->assertNotFound()
             ->assertJson([
                 'error' => 'Invoice not found'
+            ]);
+    }
+
+    public function testSendReturnsBadRequestWhenInvoiceCannotBeSent(): void
+    {
+        // Arrange
+        $invoiceId = $this->faker->uuid;
+        $errorMessage = 'Cannot send invoice: invalid status transition';
+        
+        $this->mock(InvoiceServiceInterface::class)
+            ->shouldReceive('sendInvoice')
+            ->once()
+            ->with($invoiceId)
+            ->andThrow(new InvalidInvoiceStatusTransitionException($errorMessage));
+
+        // Act
+        $response = $this->postJson("/api/invoices/{$invoiceId}/send");
+
+        // Assert
+        $response->assertStatus(400)
+            ->assertJson([
+                'error' => $errorMessage
+            ]);
+    }
+
+    public function testSendReturnsBadRequestWhenInvoiceHasInvalidProductLines(): void
+    {
+        // Arrange
+        $invoiceId = $this->faker->uuid;
+        $errorMessage = 'Cannot send invoice: no product lines';
+        
+        $this->mock(InvoiceServiceInterface::class)
+            ->shouldReceive('sendInvoice')
+            ->once()
+            ->with($invoiceId)
+            ->andThrow(new InvalidProductLineException($errorMessage));
+
+        // Act
+        $response = $this->postJson("/api/invoices/{$invoiceId}/send");
+
+        // Assert
+        $response->assertStatus(400)
+            ->assertJson([
+                'error' => $errorMessage
             ]);
     }
 
