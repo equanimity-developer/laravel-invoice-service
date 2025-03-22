@@ -6,8 +6,11 @@ namespace Modules\Invoices\Infrastructure\Providers;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
+use Modules\Invoices\Api\InvoiceFacade;
+use Modules\Invoices\Api\InvoiceFacadeInterface;
 use Modules\Invoices\Application\Listeners\ResourceDeliveredListener;
 use Modules\Invoices\Application\Services\InvoiceService;
+use Modules\Invoices\Application\Services\InvoiceServiceInterface;
 use Modules\Invoices\Domain\Repositories\InvoiceRepositoryInterface;
 use Modules\Invoices\Infrastructure\Eloquent\InvoiceRepository;
 use Modules\Notifications\Api\Events\ResourceDeliveredEvent;
@@ -26,9 +29,17 @@ final class InvoiceServiceProvider extends ServiceProvider
             );
         });
         
+        $this->app->singleton(InvoiceServiceInterface::class, InvoiceService::class);
+        
+        $this->app->singleton(InvoiceFacadeInterface::class, function ($app) {
+            return new InvoiceFacade(
+                $app->make(InvoiceServiceInterface::class)
+            );
+        });
+        
         $this->app->singleton(ResourceDeliveredListener::class, function ($app) {
             return new ResourceDeliveredListener(
-                $app->make(InvoiceService::class)
+                $app->make(InvoiceServiceInterface::class)
             );
         });
     }
@@ -39,5 +50,7 @@ final class InvoiceServiceProvider extends ServiceProvider
             ResourceDeliveredEvent::class,
             [ResourceDeliveredListener::class, 'handle']
         );
+        
+        $this->loadRoutesFrom(__DIR__ . '/../routes.php');
     }
 } 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Invoices\Application;
 
 use Illuminate\Foundation\Testing\WithFaker;
+use Mockery;
+use Modules\Invoices\Api\Dtos\InvoiceDto;
 use Modules\Invoices\Application\Services\InvoiceService;
 use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Entities\Invoice;
@@ -278,9 +280,12 @@ final class InvoiceServiceTest extends TestCase
             }));
 
         // Act
-        $this->invoiceService->markAsSentToClient($id);
+        $result = $this->invoiceService->markAsSentToClient($id->toString());
 
-        // Assert is implicit in the mock expectations
+        // Assert
+        $this->assertNotNull($result);
+        $this->assertInstanceOf(InvoiceDto::class, $result);
+        // Additional assertions on mock expectations are implicit
     }
 
     public function testMarkAsSentToClientDoesNothingWhenInvoiceNotFound(): void
@@ -295,8 +300,10 @@ final class InvoiceServiceTest extends TestCase
         $this->invoiceRepository->expects($this->never())->method('save');
 
         // Act
-        $this->invoiceService->markAsSentToClient($id);
+        $result = $this->invoiceService->markAsSentToClient($id->toString());
 
-        // Assert is implicit in the mock expectations
+        // Assert
+        $this->assertNull($result);
+        // Additional assertions on mock expectations are implicit
     }
 } 

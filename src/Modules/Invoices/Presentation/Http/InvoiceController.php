@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\Invoices\Presentation\Http;
 
 use Illuminate\Http\JsonResponse;
-use Modules\Invoices\Application\Services\InvoiceService;
+use Modules\Invoices\Application\Services\InvoiceServiceInterface;
 use Modules\Invoices\Presentation\Requests\AddProductLineRequest;
 use Modules\Invoices\Presentation\Requests\CreateInvoiceRequest;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 final readonly class InvoiceController
 {
     public function __construct(
-        private InvoiceService $invoiceService,
+        private InvoiceServiceInterface $invoiceService,
     ) {
     }
 

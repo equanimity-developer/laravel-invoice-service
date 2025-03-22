@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Invoices\Application\Services;
 
-use Modules\Invoices\Application\Dtos\InvoiceDto;
-use Modules\Invoices\Application\Dtos\ProductLineDto;
+use Modules\Invoices\Api\Dtos\InvoiceDto;
+use Modules\Invoices\Api\Dtos\ProductLineDto;
 use Modules\Invoices\Domain\Entities\Invoice;
 use Modules\Invoices\Domain\Entities\ProductLine;
 use Modules\Invoices\Domain\Repositories\InvoiceRepositoryInterface;
@@ -14,7 +14,7 @@ use Modules\Notifications\Api\NotificationFacadeInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
-final readonly class InvoiceService
+final class InvoiceService implements InvoiceServiceInterface
 {
     public function __construct(
         private InvoiceRepositoryInterface $invoiceRepository,
@@ -104,17 +104,20 @@ final readonly class InvoiceService
         return $this->mapToDto($invoice);
     }
     
-    public function markAsSentToClient(UuidInterface $resourceId): void
+    public function markAsSentToClient(string $id): ?InvoiceDto
     {
+        $resourceId = Uuid::fromString($id);
         $invoice = $this->invoiceRepository->findById($resourceId);
         
         if (!$invoice) {
-            return;
+            return null;
         }
         
         $invoice->markAsSentToClient();
         
         $this->invoiceRepository->save($invoice);
+        
+        return $this->mapToDto($invoice);
     }
     
     private function mapToDto(Invoice $invoice): InvoiceDto
@@ -136,7 +139,7 @@ final readonly class InvoiceService
             $invoice->customerName(),
             $invoice->customerEmail(),
             $productLineDtos,
-            $invoice->totalPrice(),
+            $invoice->totalPrice()
         );
     }
 } 

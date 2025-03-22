@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Modules\Invoices\Api\InvoiceFacadeInterface;
 use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
+use Modules\Invoices\Presentation\Requests\AddProductLineRequest;
 
 final class ProductLineController
 {
@@ -17,7 +18,7 @@ final class ProductLineController
     ) {
     }
     
-    public function store(Request $request, string $invoiceId): JsonResponse
+    public function store(AddProductLineRequest $request, string $invoiceId): JsonResponse
     {
         try {
             $productLine = $this->invoiceFacade->addProductLine(

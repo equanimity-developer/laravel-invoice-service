@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Modules\Invoices\Api\Dtos\CreateInvoiceRequest;
 use Modules\Invoices\Api\InvoiceFacadeInterface;
+use Modules\Invoices\Presentation\Requests\CreateInvoiceRequest as ValidatedCreateInvoiceRequest;
 
 final class InvoiceController
 {
@@ -38,7 +39,7 @@ final class InvoiceController
         return new JsonResponse($invoice);
     }
     
-    public function store(Request $request): JsonResponse
+    public function store(ValidatedCreateInvoiceRequest $request): JsonResponse
     {
         $requestData = new CreateInvoiceRequest(
             $request->input('customer_name'),
