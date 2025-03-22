@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Invoices\Infrastructure\Http\Controllers\Api;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Modules\Invoices\Api\Dtos\InvoiceDto;
 use Modules\Invoices\Api\InvoiceFacadeInterface;
 use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
+use Tests\InMemoryDatabaseTrait;
 use Tests\TestCase;
 
 final class ProductLineControllerTest extends TestCase
 {
-    use RefreshDatabase, WithFaker;
+    use InMemoryDatabaseTrait, WithFaker;
     
     public function testStore(): void
     {

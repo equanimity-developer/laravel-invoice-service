@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Invoices\Infrastructure\Eloquent;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Invoices\Domain\Entities\Invoice;
 use Modules\Invoices\Domain\Entities\ProductLine;
 use Modules\Invoices\Domain\Enums\StatusEnum;
@@ -12,11 +11,12 @@ use Modules\Invoices\Infrastructure\Eloquent\InvoiceModel;
 use Modules\Invoices\Infrastructure\Eloquent\InvoiceRepository;
 use Modules\Invoices\Infrastructure\Eloquent\ProductLineModel;
 use Ramsey\Uuid\Uuid;
+use Tests\InMemoryDatabaseTrait;
 use Tests\TestCase;
 
 final class InvoiceRepositoryTest extends TestCase
 {
-    use RefreshDatabase;
+    use InMemoryDatabaseTrait;
 
     private InvoiceRepository $repository;
 
