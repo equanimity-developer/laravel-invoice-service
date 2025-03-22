@@ -24,18 +24,26 @@ final class InvoiceTest extends TestCase
 
     public function testCreateInvoice(): void
     {
+        // Arrange
+        $id = Uuid::uuid4();
+        $customerName = $this->faker->name();
+        $customerEmail = $this->faker->email();
+        
+        // Act
         $invoice = Invoice::create(
-            Uuid::uuid4(),
-            $this->faker->name(),
-            $this->faker->email()
+            $id,
+            $customerName,
+            $customerEmail
         );
 
+        // Assert
         $this->assertEquals(StatusEnum::Draft, $invoice->status());
         $this->assertEmpty($invoice->productLines());
     }
 
     public function testCanAddProductLine(): void
     {
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
@@ -49,48 +57,58 @@ final class InvoiceTest extends TestCase
             $this->faker->numberBetween(100, 10000)
         );
 
+        // Act
         $invoice->addProductLine($productLine);
 
+        // Assert
         $this->assertCount(1, $invoice->productLines());
         $this->assertEquals($productLine->quantity() * $productLine->unitPrice(), $invoice->totalPrice());
     }
 
     public function testCannotSendInvoiceWithoutProductLines(): void
     {
-        $this->expectException(InvalidProductLineException::class);
-
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
             $this->faker->email()
         );
+        
+        $this->expectException(InvalidProductLineException::class);
 
+        // Act
         $invoice->send();
+
+        // Assert is handled by expectException
     }
 
     public function testCannotSendInvoiceWithInvalidProductLines(): void
     {
-        $this->expectException(InvalidProductLineException::class);
-
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
             $this->faker->email()
         );
 
+        // Act & Assert
+        $this->expectException(InvalidProductLineException::class);
+        
+        // This will throw an exception during construction due to invalid quantity
         $productLine = new ProductLine(
             Uuid::uuid4(),
             $this->faker->word(),
             0, // Invalid quantity
             $this->faker->numberBetween(100, 10000)
         );
-
+        
+        // This line won't be reached because an exception is thrown above
         $invoice->addProductLine($productLine);
-        $invoice->send();
     }
 
     public function testCanSendInvoiceWithValidProductLines(): void
     {
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
@@ -105,13 +123,17 @@ final class InvoiceTest extends TestCase
         );
 
         $invoice->addProductLine($productLine);
+        
+        // Act
         $invoice->send();
 
+        // Assert
         $this->assertEquals(StatusEnum::Sending, $invoice->status());
     }
 
     public function testCanMarkAsSentToClient(): void
     {
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
@@ -127,28 +149,34 @@ final class InvoiceTest extends TestCase
 
         $invoice->addProductLine($productLine);
         $invoice->send();
+        
+        // Act
         $invoice->markAsSentToClient();
 
+        // Assert
         $this->assertEquals(StatusEnum::SentToClient, $invoice->status());
     }
 
     public function testCannotMarkAsSentToClientIfNotInSendingState(): void
     {
-        $this->expectException(InvalidInvoiceStatusTransitionException::class);
-
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
             $this->faker->email()
         );
+        
+        $this->expectException(InvalidInvoiceStatusTransitionException::class);
 
+        // Act
         $invoice->markAsSentToClient();
+
+        // Assert is handled by expectException
     }
 
     public function testCannotSendInvoiceIfNotInDraftState(): void
     {
-        $this->expectException(InvalidInvoiceStatusTransitionException::class);
-
+        // Arrange
         $invoice = Invoice::create(
             Uuid::uuid4(),
             $this->faker->name(),
@@ -164,6 +192,12 @@ final class InvoiceTest extends TestCase
 
         $invoice->addProductLine($productLine);
         $invoice->send();
+        
+        $this->expectException(InvalidInvoiceStatusTransitionException::class);
+
+        // Act
         $invoice->send(); // Second send should fail
+
+        // Assert is handled by expectException
     }
 } 

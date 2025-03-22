@@ -34,6 +34,7 @@ final class ResourceDeliveredListenerTest extends TestCase
 
     public function testHandleEvent(): void
     {
+        // Arrange
         $resourceId = Uuid::uuid4();
         $event = new ResourceDeliveredEvent($resourceId);
 
@@ -42,6 +43,10 @@ final class ResourceDeliveredListenerTest extends TestCase
             ->with($this->callback(fn ($uuid) => $uuid->toString() === $resourceId->toString()))
             ->willReturn(null); // We only need to verify the call, not the actual behavior
 
+        // Act
         $this->listener->handle($event);
+        
+        // Assert
+        // Assertion is handled by the mock expectations above
     }
 } 

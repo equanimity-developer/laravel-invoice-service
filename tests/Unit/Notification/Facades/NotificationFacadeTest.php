@@ -31,15 +31,19 @@ final class NotificationFacadeTest extends TestCase
 
     public function testDelivered(): void
     {
+        // Arrange
         $data = new NotifyData(
             resourceId: Str::uuid(),
             toEmail: $this->faker->email(),
             subject: $this->faker->sentence(),
             message: $this->faker->sentence(),
         );
-
         $this->driver->expects($this->once())->method('send');
 
+        // Act
         $this->notificationFacade->notify($data);
+        
+        // Assert
+        // Assertion is handled by the mock expectations above
     }
 }

@@ -39,6 +39,7 @@ final class InvoiceServiceTest extends TestCase
 
     public function testCreateInvoice(): void
     {
+        // Arrange
         $customerName = $this->faker->name();
         $customerEmail = $this->faker->email();
 
@@ -50,8 +51,10 @@ final class InvoiceServiceTest extends TestCase
                     && $invoice->status() === StatusEnum::Draft;
             }));
 
+        // Act
         $invoiceDto = $this->invoiceService->createInvoice($customerName, $customerEmail);
 
+        // Assert
         $this->assertEquals($customerName, $invoiceDto->customerName);
         $this->assertEquals($customerEmail, $invoiceDto->customerEmail);
         $this->assertEquals(StatusEnum::Draft->value, $invoiceDto->status);
@@ -59,8 +62,144 @@ final class InvoiceServiceTest extends TestCase
         $this->assertEquals(0, $invoiceDto->totalPrice);
     }
 
+    public function testGetInvoice(): void
+    {
+        // Arrange
+        $id = Uuid::uuid4();
+        $customerName = $this->faker->name();
+        $customerEmail = $this->faker->email();
+        $productName = $this->faker->word();
+        $quantity = $this->faker->numberBetween(1, 10);
+        $unitPrice = $this->faker->numberBetween(100, 1000);
+
+        // Create a real invoice with product line
+        $invoice = Invoice::create($id, $customerName, $customerEmail);
+        $productLine = new ProductLine(Uuid::uuid4(), $productName, $quantity, $unitPrice);
+        $invoice->addProductLine($productLine);
+
+        $this->invoiceRepository->method('findById')
+            ->with($this->callback(fn ($uuid) => $uuid->toString() === $id->toString()))
+            ->willReturn($invoice);
+
+        // Act
+        $invoiceDto = $this->invoiceService->getInvoice($id->toString());
+
+        // Assert
+        $this->assertNotNull($invoiceDto);
+        $this->assertEquals($id->toString(), $invoiceDto->id);
+        $this->assertEquals($customerName, $invoiceDto->customerName);
+        $this->assertEquals($customerEmail, $invoiceDto->customerEmail);
+        $this->assertEquals(StatusEnum::Draft->value, $invoiceDto->status);
+        $this->assertCount(1, $invoiceDto->productLines);
+        $this->assertEquals($productName, $invoiceDto->productLines[0]->name);
+        $this->assertEquals($quantity * $unitPrice, $invoiceDto->totalPrice);
+    }
+
+    public function testGetInvoiceReturnsNullWhenInvoiceNotFound(): void
+    {
+        // Arrange
+        $id = Uuid::uuid4();
+
+        $this->invoiceRepository->method('findById')
+            ->with($this->callback(fn ($uuid) => $uuid->toString() === $id->toString()))
+            ->willReturn(null);
+
+        // Act
+        $invoiceDto = $this->invoiceService->getInvoice($id->toString());
+
+        // Assert
+        $this->assertNull($invoiceDto);
+    }
+
+    public function testGetAllInvoices(): void
+    {
+        // Arrange
+        $invoice1 = Invoice::create(Uuid::uuid4(), $this->faker->name(), $this->faker->email());
+        $invoice2 = Invoice::create(Uuid::uuid4(), $this->faker->name(), $this->faker->email());
+
+        $this->invoiceRepository->method('findAll')
+            ->willReturn([$invoice1, $invoice2]);
+
+        // Act
+        $invoiceDtos = $this->invoiceService->getAllInvoices();
+
+        // Assert
+        $this->assertCount(2, $invoiceDtos);
+        $this->assertEquals($invoice1->id()->toString(), $invoiceDtos[0]->id);
+        $this->assertEquals($invoice2->id()->toString(), $invoiceDtos[1]->id);
+    }
+
+    public function testAddProductLine(): void
+    {
+        // Arrange
+        $id = Uuid::uuid4();
+        $customerName = $this->faker->name();
+        $customerEmail = $this->faker->email();
+        $productName = $this->faker->word();
+        $quantity = $this->faker->numberBetween(1, 10);
+        $unitPrice = $this->faker->numberBetween(100, 1000);
+
+        // Create a real invoice
+        $invoice = Invoice::create($id, $customerName, $customerEmail);
+
+        $this->invoiceRepository->method('findById')
+            ->with($this->callback(fn ($uuid) => $uuid->toString() === $id->toString()))
+            ->willReturn($invoice);
+
+        $this->invoiceRepository->expects($this->once())
+            ->method('save')
+            ->with($this->callback(function (Invoice $savedInvoice) use ($productName) {
+                return count($savedInvoice->productLines()) === 1 
+                    && $savedInvoice->productLines()[0]->name() === $productName;
+            }));
+
+        // Act
+        $invoiceDto = $this->invoiceService->addProductLine(
+            $id->toString(),
+            $productName,
+            $quantity,
+            $unitPrice
+        );
+
+        // Assert
+        $this->assertNotNull($invoiceDto);
+        $this->assertCount(1, $invoiceDto->productLines);
+        $this->assertEquals($productName, $invoiceDto->productLines[0]->name);
+        $this->assertEquals($quantity, $invoiceDto->productLines[0]->quantity);
+        $this->assertEquals($unitPrice, $invoiceDto->productLines[0]->unitPrice);
+        $this->assertEquals($quantity * $unitPrice, $invoiceDto->productLines[0]->totalPrice);
+        $this->assertEquals($quantity * $unitPrice, $invoiceDto->totalPrice);
+    }
+
+    public function testAddProductLineReturnsNullWhenInvoiceNotFound(): void
+    {
+        // Arrange
+        $id = Uuid::uuid4();
+        $productName = $this->faker->word();
+        $quantity = $this->faker->numberBetween(1, 10);
+        $unitPrice = $this->faker->numberBetween(100, 1000);
+
+        $this->invoiceRepository->method('findById')
+            ->with($this->callback(fn ($uuid) => $uuid->toString() === $id->toString()))
+            ->willReturn(null);
+
+        $this->invoiceRepository->expects($this->never())->method('save');
+
+        // Act
+        $invoiceDto = $this->invoiceService->addProductLine(
+            $id->toString(),
+            $productName,
+            $quantity,
+            $unitPrice
+        );
+
+        // Assert
+        $this->assertNull($invoiceDto);
+    }
+
     public function testSendInvoice(): void
     {
+        // Arrange
         $id = Uuid::uuid4();
         $customerName = $this->faker->name();
         $customerEmail = $this->faker->email();
@@ -86,14 +225,36 @@ final class InvoiceServiceTest extends TestCase
                     && $data->toEmail === $customerEmail;
             }));
 
+        // Act
         $invoiceDto = $this->invoiceService->sendInvoice($id->toString());
 
+        // Assert
         $this->assertNotNull($invoiceDto);
         $this->assertEquals(StatusEnum::Sending->value, $invoiceDto->status);
     }
 
+    public function testSendInvoiceReturnsNullWhenInvoiceNotFound(): void
+    {
+        // Arrange
+        $id = Uuid::uuid4();
+
+        $this->invoiceRepository->method('findById')
+            ->with($this->callback(fn ($uuid) => $uuid->toString() === $id->toString()))
+            ->willReturn(null);
+
+        $this->invoiceRepository->expects($this->never())->method('save');
+        $this->notificationFacade->expects($this->never())->method('notify');
+
+        // Act
+        $invoiceDto = $this->invoiceService->sendInvoice($id->toString());
+
+        // Assert
+        $this->assertNull($invoiceDto);
+    }
+
     public function testMarkAsSentToClient(): void
     {
+        // Arrange
         $id = Uuid::uuid4();
         $customerName = $this->faker->name();
         $customerEmail = $this->faker->email();
@@ -116,6 +277,26 @@ final class InvoiceServiceTest extends TestCase
                 return $savedInvoice->status() === StatusEnum::SentToClient;
             }));
 
+        // Act
         $this->invoiceService->markAsSentToClient($id);
+
+        // Assert is implicit in the mock expectations
+    }
+
+    public function testMarkAsSentToClientDoesNothingWhenInvoiceNotFound(): void
+    {
+        // Arrange
+        $id = Uuid::uuid4();
+
+        $this->invoiceRepository->method('findById')
+            ->with($this->callback(fn ($uuid) => $uuid->toString() === $id->toString()))
+            ->willReturn(null);
+
+        $this->invoiceRepository->expects($this->never())->method('save');
+
+        // Act
+        $this->invoiceService->markAsSentToClient($id);
+
+        // Assert is implicit in the mock expectations
     }
 } 

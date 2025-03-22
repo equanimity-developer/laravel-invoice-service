@@ -28,10 +28,16 @@ final class NotificationServiceTest extends TestCase
 
     public function testDelivered(): void
     {
+        // Arrange
         $this->dispatcher->expects($this->once())
             ->method('dispatch')
             ->with($this->isInstanceOf(ResourceDeliveredEvent::class));
+        $uuid = $this->faker->uuid();
 
-        $this->notificationService->delivered($this->faker->uuid());
+        // Act
+        $this->notificationService->delivered($uuid);
+
+        // Assert
+        // Assertion is handled by the mock expectations above
     }
 }
