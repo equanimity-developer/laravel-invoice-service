@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Invoices\Domain\Exceptions;
 
-use RuntimeException;
+use Exception;
 
-final class InvalidProductLineException extends RuntimeException
+final class InvalidProductLineException extends Exception
 {
 } 

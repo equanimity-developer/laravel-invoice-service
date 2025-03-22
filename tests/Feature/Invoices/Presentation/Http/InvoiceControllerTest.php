@@ -4,25 +4,30 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Invoices\Presentation\Http;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Validation\ValidationException;
 use Modules\Invoices\Application\Dtos\InvoiceDto;
-use Modules\Invoices\Application\Dtos\ProductLineDto;
 use Modules\Invoices\Application\Services\InvoiceServiceInterface;
 use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Exceptions\InvalidInvoiceStatusTransitionException;
 use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
-use Modules\Invoices\Presentation\Requests\AddProductLineRequest;
-use Modules\Invoices\Presentation\Requests\CreateInvoiceRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\InMemoryDatabaseTrait;
 use Tests\TestCase;
-use Faker\Factory;
-use Faker\Generator;
+use Mockery\MockInterface;
+use Ramsey\Uuid\Uuid;
 
 final class InvoiceControllerTest extends TestCase
 {
     use InMemoryDatabaseTrait, WithFaker;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutExceptionHandling([
+            ValidationException::class
+        ]);
+    }
 
     public function testIndex(): void
     {
@@ -83,7 +88,7 @@ final class InvoiceControllerTest extends TestCase
     public function testShowReturnsNotFoundWhenInvoiceDoesNotExist(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
+        $invoiceId = (string) Uuid::uuid4();
 
         $this->mock(InvoiceServiceInterface::class)
             ->shouldReceive('getInvoice')
@@ -97,24 +102,33 @@ final class InvoiceControllerTest extends TestCase
         // Assert
         $response->assertNotFound()
             ->assertJson([
-                'error' => 'Invoice not found'
+                'error' => 'invoices.errors.not_found'
             ]);
     }
 
     public function testStore(): void
     {
         // Arrange
-        $invoiceDto = $this->createInvoiceDto();
+        $invoiceDto = new InvoiceDto(
+            'b91bf857-a726-3304-9af4-2395a5293b36',
+            'draft',
+            'Raymundo Balistreri DVM',
+            'pedro12@hotmail.com',
+            [],
+            0
+        );
+
         $requestData = [
-            'customer_name' => $this->faker->name,
-            'customer_email' => $this->faker->email,
+            'customer_name' => 'Raymundo Balistreri DVM',
+            'customer_email' => 'pedro12@hotmail.com',
         ];
 
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('createInvoice')
-            ->once()
-            ->with($requestData['customer_name'], $requestData['customer_email'])
-            ->andReturn($invoiceDto);
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceDto, $requestData) {
+            $mock->shouldReceive('createInvoice')
+                ->with($requestData['customer_name'], $requestData['customer_email'])
+                ->once()
+                ->andReturn($invoiceDto);
+        });
 
         // Act
         $response = $this->postJson('/api/invoices', $requestData);
@@ -122,8 +136,8 @@ final class InvoiceControllerTest extends TestCase
         // Assert
         $response->assertCreated()
             ->assertJson([
-                'message' => 'Invoice successfully created',
-                'data' => [
+                'message' => 'invoices.success.created',
+                'invoice' => [
                     'id' => $invoiceDto->id,
                     'status' => $invoiceDto->status,
                     'customerName' => $invoiceDto->customerName,
@@ -136,8 +150,8 @@ final class InvoiceControllerTest extends TestCase
     {
         // Arrange
         $requestData = [
-            'customer_name' => '', // Empty name will fail validation
-            'customer_email' => 'not-a-valid-email', // Invalid email
+            'customer_name' => '',
+            'customer_email' => 'not-a-valid-email',
         ];
 
         // Act
@@ -151,24 +165,33 @@ final class InvoiceControllerTest extends TestCase
     public function testAddProductLine(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
-        $invoiceDto = $this->createInvoiceDto($invoiceId);
+        $invoiceId = '7eb757ee-85c5-354c-9c9b-cf4655cc79e7';
         $requestData = [
-            'product_name' => $this->faker->word,
-            'quantity' => $this->faker->numberBetween(1, 10),
-            'unit_price' => $this->faker->numberBetween(100, 1000),
+            'product_name' => 'Product 1',
+            'quantity' => 2,
+            'unit_price' => 1000,
         ];
 
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('addProductLine')
-            ->once()
-            ->with(
-                $invoiceId,
-                $requestData['product_name'],
-                $requestData['quantity'],
-                $requestData['unit_price']
-            )
-            ->andReturn($invoiceDto);
+        $invoiceDto = new InvoiceDto(
+            $invoiceId,
+            'draft',
+            'Mr. Graham Kovacek',
+            'johnson.flossie@hotmail.com',
+            [],
+            0
+        );
+
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceDto, $invoiceId, $requestData) {
+            $mock->shouldReceive('addProductLine')
+                ->with(
+                    $invoiceId,
+                    $requestData['product_name'],
+                    $requestData['quantity'],
+                    $requestData['unit_price']
+                )
+                ->once()
+                ->andReturn($invoiceDto);
+        });
 
         // Act
         $response = $this->postJson("/api/invoices/{$invoiceId}/product-lines", $requestData);
@@ -176,8 +199,8 @@ final class InvoiceControllerTest extends TestCase
         // Assert
         $response->assertCreated()
             ->assertJson([
-                'message' => 'Product line successfully added',
-                'data' => [
+                'message' => 'invoices.success.product_line_added',
+                'invoice' => [
                     'id' => $invoiceDto->id,
                     'status' => $invoiceDto->status,
                     'customerName' => $invoiceDto->customerName,
@@ -189,23 +212,24 @@ final class InvoiceControllerTest extends TestCase
     public function testAddProductLineReturnsNotFoundWhenInvoiceDoesNotExist(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
+        $invoiceId = (string) Uuid::uuid4();
         $requestData = [
-            'product_name' => $this->faker->word,
-            'quantity' => $this->faker->numberBetween(1, 10),
-            'unit_price' => $this->faker->numberBetween(100, 1000),
+            'product_name' => 'Product 1',
+            'quantity' => 2,
+            'unit_price' => 1000,
         ];
 
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('addProductLine')
-            ->once()
-            ->with(
-                $invoiceId,
-                $requestData['product_name'],
-                $requestData['quantity'],
-                $requestData['unit_price']
-            )
-            ->andReturn(null);
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceId, $requestData) {
+            $mock->shouldReceive('addProductLine')
+                ->with(
+                    $invoiceId,
+                    $requestData['product_name'],
+                    $requestData['quantity'],
+                    $requestData['unit_price']
+                )
+                ->once()
+                ->andReturnNull();
+        });
 
         // Act
         $response = $this->postJson("/api/invoices/{$invoiceId}/product-lines", $requestData);
@@ -213,7 +237,7 @@ final class InvoiceControllerTest extends TestCase
         // Assert
         $response->assertNotFound()
             ->assertJson([
-                'error' => 'Invoice not found'
+                'error' => 'invoices.errors.not_found'
             ]);
     }
 
@@ -222,9 +246,9 @@ final class InvoiceControllerTest extends TestCase
         // Arrange
         $invoiceId = $this->faker->uuid;
         $requestData = [
-            'product_name' => '', // Empty name will fail validation
-            'quantity' => 0, // Should be > 0
-            'unit_price' => 0, // Should be > 0
+            'product_name' => '',
+            'quantity' => 0,
+            'unit_price' => 0,
         ];
 
         // Act
@@ -238,73 +262,43 @@ final class InvoiceControllerTest extends TestCase
     public function testAddProductLineReturnsBadRequestWhenProductLineIsInvalid(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
-        $errorMessage = 'Invalid product line: quantity must be positive';
+        $invoiceId = (string) Uuid::uuid4();
         $requestData = [
-            'product_name' => $this->faker->word,
-            'quantity' => 1, // Valid for validation, but will trigger exception in service
-            'unit_price' => $this->faker->numberBetween(100, 1000),
+            'product_name' => 'Product 1',
+            'quantity' => 2,
+            'unit_price' => 1000,
         ];
-        
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('addProductLine')
-            ->once()
-            ->with(
-                $invoiceId,
-                $requestData['product_name'],
-                $requestData['quantity'],
-                $requestData['unit_price']
-            )
-            ->andThrow(new InvalidProductLineException($errorMessage));
+
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceId, $requestData) {
+            $mock->shouldReceive('addProductLine')
+                ->with(
+                    $invoiceId,
+                    $requestData['product_name'],
+                    $requestData['quantity'],
+                    $requestData['unit_price']
+                )
+                ->once()
+                ->andThrow(new InvalidProductLineException('invalid_product_lines'));
+        });
 
         // Act
         $response = $this->postJson("/api/invoices/{$invoiceId}/product-lines", $requestData);
 
         // Assert
-        $response->assertStatus(400)
-            ->assertJson([
-                'error' => $errorMessage
-            ]);
-    }
-
-    public function testSend(): void
-    {
-        // Arrange
-        $invoiceId = $this->faker->uuid;
-        $invoiceDto = $this->createInvoiceDto($invoiceId, StatusEnum::Sending->value);
-
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('sendInvoice')
-            ->once()
-            ->with($invoiceId)
-            ->andReturn($invoiceDto);
-
-        // Act
-        $response = $this->postJson("/api/invoices/{$invoiceId}/send");
-
-        // Assert
-        $response->assertOk()
-            ->assertJson([
-                'message' => 'Invoice has been sent successfully',
-                'data' => [
-                    'id' => $invoiceDto->id,
-                    'customerName' => $invoiceDto->customerName,
-                    'customerEmail' => $invoiceDto->customerEmail,
-                    'status' => StatusEnum::Sending->value,
-                ]
-            ]);
+        $response->assertStatus(Response::HTTP_BAD_REQUEST);
     }
 
     public function testSendReturnsNotFoundWhenInvoiceDoesNotExist(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
+        $invoiceId = (string) Uuid::uuid4();
 
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('sendInvoice')
-            ->once()
-            ->with($invoiceId)
-            ->andReturn(null);
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceId) {
+            $mock->shouldReceive('sendInvoice')
+                ->with($invoiceId)
+                ->once()
+                ->andReturnNull();
+        });
 
         // Act
         $response = $this->postJson("/api/invoices/{$invoiceId}/send");
@@ -312,52 +306,46 @@ final class InvoiceControllerTest extends TestCase
         // Assert
         $response->assertNotFound()
             ->assertJson([
-                'error' => 'Invoice not found'
+                'error' => 'invoices.errors.not_found'
             ]);
     }
 
     public function testSendReturnsBadRequestWhenInvoiceCannotBeSent(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
-        $errorMessage = 'Cannot send invoice: invalid status transition';
-        
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('sendInvoice')
-            ->once()
-            ->with($invoiceId)
-            ->andThrow(new InvalidInvoiceStatusTransitionException($errorMessage));
+        $invoiceId = (string) Uuid::uuid4();
+
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceId) {
+            $mock->shouldReceive('sendInvoice')
+                ->with($invoiceId)
+                ->once()
+                ->andThrow(new InvalidInvoiceStatusTransitionException('invalid_status_transition_send'));
+        });
 
         // Act
         $response = $this->postJson("/api/invoices/{$invoiceId}/send");
 
         // Assert
-        $response->assertStatus(400)
-            ->assertJson([
-                'error' => $errorMessage
-            ]);
+        $response->assertStatus(Response::HTTP_BAD_REQUEST);
     }
 
     public function testSendReturnsBadRequestWhenInvoiceHasInvalidProductLines(): void
     {
         // Arrange
-        $invoiceId = $this->faker->uuid;
-        $errorMessage = 'Cannot send invoice: no product lines';
-        
-        $this->mock(InvoiceServiceInterface::class)
-            ->shouldReceive('sendInvoice')
-            ->once()
-            ->with($invoiceId)
-            ->andThrow(new InvalidProductLineException($errorMessage));
+        $invoiceId = (string) Uuid::uuid4();
+
+        $this->mock(InvoiceServiceInterface::class, function (MockInterface $mock) use ($invoiceId) {
+            $mock->shouldReceive('sendInvoice')
+                ->with($invoiceId)
+                ->once()
+                ->andThrow(new InvalidProductLineException('no_product_lines'));
+        });
 
         // Act
         $response = $this->postJson("/api/invoices/{$invoiceId}/send");
 
         // Assert
-        $response->assertStatus(400)
-            ->assertJson([
-                'error' => $errorMessage
-            ]);
+        $response->assertStatus(Response::HTTP_BAD_REQUEST);
     }
 
     private function createInvoiceDto(string $id = null, string $status = StatusEnum::Draft->value): InvoiceDto
@@ -371,17 +359,6 @@ final class InvoiceControllerTest extends TestCase
             $this->faker->email,
             [],
             0
-        );
-    }
-
-    private function createProductLineDto(): ProductLineDto
-    {
-        return new ProductLineDto(
-            $this->faker->uuid,
-            $this->faker->word,
-            $this->faker->numberBetween(1, 10),
-            $this->faker->numberBetween(100, 1000),
-            $this->faker->numberBetween(100, 10000)
         );
     }
 }

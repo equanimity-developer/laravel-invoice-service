@@ -6,16 +6,19 @@ namespace Modules\Invoices\Presentation\Http;
 
 use Illuminate\Http\JsonResponse;
 use Modules\Invoices\Application\Services\InvoiceServiceInterface;
-use Modules\Invoices\Domain\Exceptions\InvalidInvoiceStatusTransitionException;
-use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
+use Modules\Invoices\Domain\Translation\TranslatorInterface;
+use Modules\Invoices\Presentation\Exceptions\InvoiceExceptionHandler;
 use Modules\Invoices\Presentation\Requests\AddProductLineRequest;
 use Modules\Invoices\Presentation\Requests\CreateInvoiceRequest;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
-final readonly class InvoiceController
+readonly class InvoiceController
 {
     public function __construct(
         private InvoiceServiceInterface $invoiceService,
+        private TranslatorInterface $translator,
+        private InvoiceExceptionHandler $exceptionHandler,
     ) {
     }
 
@@ -30,9 +33,9 @@ final readonly class InvoiceController
     {
         $invoice = $this->invoiceService->getInvoice($id);
 
-        if ($invoice === null) {
+        if (!$invoice) {
             return new JsonResponse(
-                ['error' => 'Invoice not found'],
+                ['error' => $this->translator->translate('invoices.errors.not_found')],
                 Response::HTTP_NOT_FOUND
             );
         }
@@ -47,38 +50,38 @@ final readonly class InvoiceController
             $request->input('customer_email')
         );
 
-        return new JsonResponse([
-            'message' => 'Invoice successfully created',
-            'data' => $invoice
-        ], Response::HTTP_CREATED);
+        return new JsonResponse(
+            [
+                'invoice' => $invoice,
+                'message' => $this->translator->translate('invoices.success.created'),
+            ],
+            Response::HTTP_CREATED
+        );
     }
 
-    public function addProductLine(string $invoiceId, AddProductLineRequest $request): JsonResponse
+    public function addProductLine(string $id, AddProductLineRequest $request): JsonResponse
     {
         try {
             $invoice = $this->invoiceService->addProductLine(
-                $invoiceId,
+                $id,
                 $request->input('product_name'),
                 $request->integer('quantity'),
                 $request->integer('unit_price')
             );
 
-            if ($invoice === null) {
+            if (!$invoice) {
                 return new JsonResponse(
-                    ['error' => 'Invoice not found'],
+                    ['error' => $this->translator->translate('invoices.errors.not_found')],
                     Response::HTTP_NOT_FOUND
                 );
             }
 
             return new JsonResponse([
-                'message' => 'Product line successfully added',
-                'data' => $invoice
+                'invoice' => $invoice,
+                'message' => $this->translator->translate('invoices.success.product_line_added'),
             ], Response::HTTP_CREATED);
-        } catch (InvalidProductLineException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_BAD_REQUEST
-            );
+        } catch (Throwable $e) {
+            return $this->exceptionHandler->handle($e);
         }
     }
 
@@ -87,22 +90,19 @@ final readonly class InvoiceController
         try {
             $invoice = $this->invoiceService->sendInvoice($id);
 
-            if ($invoice === null) {
+            if (!$invoice) {
                 return new JsonResponse(
-                    ['error' => 'Invoice not found'],
+                    ['error' => $this->translator->translate('invoices.errors.not_found')],
                     Response::HTTP_NOT_FOUND
                 );
             }
 
             return new JsonResponse([
-                'message' => 'Invoice has been sent successfully',
-                'data' => $invoice
+                'invoice' => $invoice,
+                'message' => $this->translator->translate('invoices.success.sent'),
             ]);
-        } catch (InvalidInvoiceStatusTransitionException | InvalidProductLineException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_BAD_REQUEST
-            );
+        } catch (Throwable $e) {
+            return $this->exceptionHandler->handle($e);
         }
     }
-} 
+}
