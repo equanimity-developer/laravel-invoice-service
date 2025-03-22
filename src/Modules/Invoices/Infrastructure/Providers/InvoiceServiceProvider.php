@@ -6,8 +6,6 @@ namespace Modules\Invoices\Infrastructure\Providers;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
-use Modules\Invoices\Api\InvoiceFacade;
-use Modules\Invoices\Api\InvoiceFacadeInterface;
 use Modules\Invoices\Application\Listeners\ResourceDeliveredListener;
 use Modules\Invoices\Application\Services\InvoiceService;
 use Modules\Invoices\Application\Services\InvoiceServiceInterface;
@@ -30,12 +28,6 @@ final class InvoiceServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(InvoiceServiceInterface::class, InvoiceService::class);
-
-        $this->app->singleton(InvoiceFacadeInterface::class, function ($app) {
-            return new InvoiceFacade(
-                $app->make(InvoiceServiceInterface::class)
-            );
-        });
 
         $this->app->singleton(ResourceDeliveredListener::class, function ($app) {
             return new ResourceDeliveredListener(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Invoices\Api\Dtos;
+namespace Tests\Unit\Invoices\Application\Dtos;
 
 use Modules\Invoices\Application\Dtos\CreateInvoiceRequest;
 use PHPUnit\Framework\TestCase;
