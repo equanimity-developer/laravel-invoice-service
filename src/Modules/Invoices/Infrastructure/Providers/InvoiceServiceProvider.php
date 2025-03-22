@@ -21,29 +21,29 @@ final class InvoiceServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(InvoiceRepositoryInterface::class, InvoiceRepository::class);
-        
+
         $this->app->singleton(InvoiceService::class, function ($app) {
             return new InvoiceService(
                 $app->make(InvoiceRepositoryInterface::class),
                 $app->make(NotificationFacadeInterface::class)
             );
         });
-        
+
         $this->app->singleton(InvoiceServiceInterface::class, InvoiceService::class);
-        
+
         $this->app->singleton(InvoiceFacadeInterface::class, function ($app) {
             return new InvoiceFacade(
                 $app->make(InvoiceServiceInterface::class)
             );
         });
-        
+
         $this->app->singleton(ResourceDeliveredListener::class, function ($app) {
             return new ResourceDeliveredListener(
                 $app->make(InvoiceServiceInterface::class)
             );
         });
     }
-    
+
     public function boot(): void
     {
         $this->app->make(Dispatcher::class)->listen(
@@ -51,6 +51,8 @@ final class InvoiceServiceProvider extends ServiceProvider
             [ResourceDeliveredListener::class, 'handle']
         );
         
-        $this->loadRoutesFrom(__DIR__ . '/../routes.php');
+        // In DDD architecture, the Presentation layer should handle all external API endpoints,
+        // not the Infrastructure layer. The routes are now defined in the Presentation layer.
+        // $this->loadRoutesFrom(__DIR__ . '/../routes.php');
     }
-} 
+}
