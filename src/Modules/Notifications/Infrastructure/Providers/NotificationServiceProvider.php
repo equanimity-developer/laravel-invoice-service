@@ -21,7 +21,6 @@ final class NotificationServiceProvider extends ServiceProvider implements Defer
         ));
     }
 
-    /** @return array<class-string> */
     public function provides(): array
     {
         return [

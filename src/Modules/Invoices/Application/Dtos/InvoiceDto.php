@@ -6,9 +6,6 @@ namespace Modules\Invoices\Application\Dtos;
 
 final readonly class InvoiceDto
 {
-    /**
-     * @param ProductLineDto[] $productLines
-     */
     public function __construct(
         public string $id,
         public string $status,

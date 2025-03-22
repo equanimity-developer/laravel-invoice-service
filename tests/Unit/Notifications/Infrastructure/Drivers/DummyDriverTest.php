@@ -24,10 +24,10 @@ final class DummyDriverTest extends TestCase
     public function testSendAlwaysReturnsTrue(): void
     {
         // Arrange
-        $toEmail = $this->faker->email;
-        $subject = $this->faker->sentence;
-        $message = $this->faker->paragraph;
-        $reference = $this->faker->uuid;
+        $toEmail = $this->faker->email();
+        $subject = $this->faker->sentence();
+        $message = $this->faker->paragraph();
+        $reference = $this->faker->uuid();
         
         // Act
         $result = $this->driver->send($toEmail, $subject, $message, $reference);

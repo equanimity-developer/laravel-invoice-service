@@ -24,10 +24,8 @@ final readonly class InvoiceRepository implements InvoiceRepositoryInterface
             ]
         );
 
-        // Remove existing product lines to re-insert them
         $invoiceModel->productLines()->delete();
 
-        // Re-create product lines
         foreach ($invoice->productLines() as $productLine) {
             $invoiceModel->productLines()->create([
                 'id' => $productLine->id()->toString(),
@@ -64,7 +62,6 @@ final readonly class InvoiceRepository implements InvoiceRepositoryInterface
             $model->customer_email
         );
 
-        // If invoice has a different status than draft, we need to simulate the state transition
         if ($model->status === StatusEnum::Sending->value) {
             $this->addProductLinesToInvoice($invoice, $model);
             $invoice->send();

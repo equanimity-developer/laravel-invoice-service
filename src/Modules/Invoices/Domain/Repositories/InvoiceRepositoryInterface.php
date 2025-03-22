@@ -13,8 +13,5 @@ interface InvoiceRepositoryInterface
     
     public function findById(UuidInterface $id): ?Invoice;
     
-    /**
-     * @return Invoice[]
-     */
     public function findAll(): array;
 } 
