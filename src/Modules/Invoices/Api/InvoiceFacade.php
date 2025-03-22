@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Invoices\Api;
 
-use Modules\Invoices\Api\Dtos\CreateInvoiceRequest;
-use Modules\Invoices\Api\Dtos\InvoiceDto;
+use Modules\Invoices\Application\Dtos\CreateInvoiceRequest;
+use Modules\Invoices\Application\Dtos\InvoiceDto;
 use Modules\Invoices\Application\Services\InvoiceServiceInterface;
 
 final readonly class InvoiceFacade implements InvoiceFacadeInterface

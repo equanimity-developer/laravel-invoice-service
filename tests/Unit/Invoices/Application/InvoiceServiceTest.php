@@ -6,11 +6,14 @@ namespace Tests\Unit\Invoices\Application;
 
 use Illuminate\Foundation\Testing\WithFaker;
 use Mockery;
-use Modules\Invoices\Api\Dtos\InvoiceDto;
+use Mockery\MockInterface;
+use Modules\Invoices\Application\Dtos\InvoiceDto;
 use Modules\Invoices\Application\Services\InvoiceService;
-use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Entities\Invoice;
 use Modules\Invoices\Domain\Entities\ProductLine;
+use Modules\Invoices\Domain\Enums\StatusEnum;
+use Modules\Invoices\Domain\Exceptions\InvalidInvoiceStatusTransitionException;
+use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
 use Modules\Invoices\Domain\Repositories\InvoiceRepositoryInterface;
 use Modules\Notifications\Api\Dtos\NotifyData;
 use Modules\Notifications\Api\NotificationFacadeInterface;

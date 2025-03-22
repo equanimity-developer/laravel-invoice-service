@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Invoices\Api\Dtos;
 
-use Modules\Invoices\Api\Dtos\CreateInvoiceRequest;
+use Modules\Invoices\Application\Dtos\CreateInvoiceRequest;
 use PHPUnit\Framework\TestCase;
 
 final class CreateInvoiceRequestTest extends TestCase

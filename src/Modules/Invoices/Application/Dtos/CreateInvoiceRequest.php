@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\Invoices\Api\Dtos;
+namespace Modules\Invoices\Application\Dtos;
 
 final readonly class CreateInvoiceRequest
 {

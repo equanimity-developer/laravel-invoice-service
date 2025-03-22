@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Invoices\Application\Services;
 
-use Modules\Invoices\Api\Dtos\InvoiceDto;
+use Modules\Invoices\Application\Dtos\InvoiceDto;
 
 interface InvoiceServiceInterface
 {

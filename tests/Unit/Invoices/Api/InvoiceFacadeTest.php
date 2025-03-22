@@ -6,10 +6,11 @@ namespace Tests\Unit\Invoices\Api;
 
 use Mockery;
 use Mockery\MockInterface;
-use Modules\Invoices\Api\Dtos\CreateInvoiceRequest;
-use Modules\Invoices\Api\Dtos\InvoiceDto;
 use Modules\Invoices\Api\InvoiceFacade;
+use Modules\Invoices\Application\Dtos\CreateInvoiceRequest;
+use Modules\Invoices\Application\Dtos\InvoiceDto;
 use Modules\Invoices\Application\Services\InvoiceServiceInterface;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 final class InvoiceFacadeTest extends TestCase

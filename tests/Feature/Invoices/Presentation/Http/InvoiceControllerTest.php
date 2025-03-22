@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Invoices\Presentation\Http;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Modules\Invoices\Api\Dtos\InvoiceDto;
-use Modules\Invoices\Api\Dtos\ProductLineDto;
+use Modules\Invoices\Application\Dtos\InvoiceDto;
+use Modules\Invoices\Application\Dtos\ProductLineDto;
 use Modules\Invoices\Application\Services\InvoiceServiceInterface;
 use Modules\Invoices\Domain\Enums\StatusEnum;
 use Modules\Invoices\Domain\Exceptions\InvalidInvoiceStatusTransitionException;
 use Modules\Invoices\Domain\Exceptions\InvalidProductLineException;
+use Modules\Invoices\Presentation\Requests\AddProductLineRequest;
+use Modules\Invoices\Presentation\Requests\CreateInvoiceRequest;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\InMemoryDatabaseTrait;
 use Tests\TestCase;
 use Faker\Factory;

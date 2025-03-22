@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Invoices\Application\Services;
 
-use Modules\Invoices\Api\Dtos\InvoiceDto;
-use Modules\Invoices\Api\Dtos\ProductLineDto;
+use Modules\Invoices\Application\Dtos\InvoiceDto;
+use Modules\Invoices\Application\Dtos\ProductLineDto;
 use Modules\Invoices\Domain\Entities\Invoice;
 use Modules\Invoices\Domain\Entities\ProductLine;
 use Modules\Invoices\Domain\Repositories\InvoiceRepositoryInterface;
