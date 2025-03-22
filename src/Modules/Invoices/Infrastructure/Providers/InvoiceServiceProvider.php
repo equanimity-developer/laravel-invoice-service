@@ -29,6 +29,7 @@ final class InvoiceServiceProvider extends ServiceProvider
             return new InvoiceService(
                 $app->make(InvoiceRepositoryInterface::class),
                 $app->make(NotificationFacadeInterface::class),
+                $app->make(TranslatorInterface::class)
             );
         });
 

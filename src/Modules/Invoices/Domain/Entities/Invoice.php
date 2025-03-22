@@ -84,22 +84,33 @@ final class Invoice
         );
     }
 
+    /**
+     * Attempts to send the invoice to the customer.
+     * 
+     * Business rules applied:
+     * - Invoice must be in draft status
+     * - Invoice must have at least one product line
+     * - All product lines must be valid (positive quantity and price)
+     * 
+     * @throws InvalidInvoiceStatusTransitionException When invoice is not in draft status
+     * @throws InvalidProductLineException When invoice has no product lines or invalid product lines
+     */
     public function send(): void
     {
         if ($this->status !== StatusEnum::Draft) {
             throw new InvalidInvoiceStatusTransitionException(
-                'Invoice can only be sent if it is in draft status'
+                'invalid_status_transition_send'
             );
         }
 
         if (empty($this->productLines)) {
-            throw new InvalidProductLineException('Invoice must have at least one product line to be sent');
+            throw new InvalidProductLineException('no_product_lines');
         }
 
         foreach ($this->productLines as $productLine) {
             if (!$productLine->isValid()) {
                 throw new InvalidProductLineException(
-                    'All product lines must have positive quantity and unit price'
+                    'invalid_product_lines'
                 );
             }
         }
@@ -107,11 +118,19 @@ final class Invoice
         $this->status = StatusEnum::Sending;
     }
 
+    /**
+     * Marks the invoice as sent to the client.
+     * 
+     * Business rules applied:
+     * - Invoice must be in sending status
+     * 
+     * @throws InvalidInvoiceStatusTransitionException When invoice is not in sending status
+     */
     public function markAsSentToClient(): void
     {
         if ($this->status !== StatusEnum::Sending) {
             throw new InvalidInvoiceStatusTransitionException(
-                'Invoice can only be marked as sent-to-client if it is in sending status'
+                'invalid_status_transition_mark_sent'
             );
         }
 

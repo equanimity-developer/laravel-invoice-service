@@ -53,3 +53,31 @@ The invoice should contain the following fields:
 
 * Start the project by running `./start.sh`.
 * To access the container environment, use: `docker compose exec app bash`.
+
+## Implementation Details
+
+### Internationalization (i18n) Approach
+
+The project implements a clean separation of concerns for translation, following Domain-Driven Design principles:
+
+1. **Domain Layer**:
+   - Defines a `TranslatorInterface` that serves as an abstraction for translation services
+   - Domain entities use simple string error codes instead of full error messages
+
+2. **Infrastructure Layer**:
+   - Provides a Laravel-specific implementation (`LaravelTranslator`) that adapts Laravel's translation function
+
+3. **Translation Files**:
+   - All translations are stored in language files (`lang/en/invoices.php`)
+   - Translations are organized by category (errors, success, notifications)
+   - Messages support parameter substitution for dynamic content
+
+4. **Exception Handling**:
+   - The exception handler maps domain error codes to appropriate translation keys
+   - This ensures user-friendly messages while keeping the domain pure
+
+This approach offers several benefits:
+- Domain entities remain free from presentation concerns
+- Adding support for new languages is straightforward
+- Clear separation between business logic and UI text
+- Easy maintenance of all text in one place
