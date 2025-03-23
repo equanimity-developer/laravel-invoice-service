@@ -1,0 +1,297 @@
+openapi: 3.0.3
+info:
+  title: Invoice API
+  description: API for managing invoices, including creation, viewing, and sending.
+  version: 1.0.0
+servers:
+  - url: http://localhost/api
+    description: Local development server
+
+paths:
+  /invoices:
+    get:
+      summary: List all invoices
+      operationId: listInvoices
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+    post:
+      summary: Create a new invoice
+      operationId: createInvoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceRequest'
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+                  message:
+                    type: string
+                    example: "Invoice created successfully"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /invoices/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Invoice ID
+    get:
+      summary: Get invoice by ID
+      operationId: getInvoice
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invoice not found"
+
+  /invoices/{id}/product-lines:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Invoice ID
+    post:
+      summary: Add a product line to an invoice
+      operationId: addProductLine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddProductLineRequest'
+      responses:
+        '201':
+          description: Product line added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+                  message:
+                    type: string
+                    example: "Product line added successfully"
+        '404':
+          description: Invoice not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /invoices/{id}/send:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Invoice ID
+    post:
+      summary: Send an invoice to the customer
+      operationId: sendInvoice
+      responses:
+        '200':
+          description: Invoice sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/Invoice'
+                  message:
+                    type: string
+                    example: "Invoice sent successfully"
+        '404':
+          description: Invoice not found
+        '422':
+          description: Unable to send invoice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Cannot send invoice without product lines"
+
+  /notification/hook/{action}/{reference}:
+    parameters:
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[a-zA-Z]+$"
+        description: The action to perform
+      - name: reference
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Reference ID for the notification
+    get:
+      summary: Webhook for notification events
+      operationId: notificationHook
+      responses:
+        '200':
+          description: Notification processed
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Auto-generated invoice ID
+        status:
+          type: string
+          enum: [draft, sending, sent-to-client]
+          description: Current status of the invoice
+        customer_name:
+          type: string
+          description: Name of the customer
+        customer_email:
+          type: string
+          format: email
+          description: Email of the customer
+        product_lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductLine'
+          description: List of product lines in the invoice
+        total_price:
+          type: integer
+          description: Total price of the invoice (sum of all product lines)
+      required:
+        - id
+        - status
+        - customer_name
+        - customer_email
+        - product_lines
+        - total_price
+
+    ProductLine:
+      type: object
+      properties:
+        product_name:
+          type: string
+          description: Name of the product
+        quantity:
+          type: integer
+          minimum: 1
+          description: Quantity of the product
+        unit_price:
+          type: integer
+          minimum: 1
+          description: Unit price of the product
+        total_unit_price:
+          type: integer
+          description: Total price for this product line (quantity × unit_price)
+      required:
+        - product_name
+        - quantity
+        - unit_price
+        - total_unit_price
+
+    CreateInvoiceRequest:
+      type: object
+      properties:
+        customer_name:
+          type: string
+          maxLength: 255
+          description: Name of the customer
+        customer_email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Email of the customer
+      required:
+        - customer_name
+        - customer_email
+
+    AddProductLineRequest:
+      type: object
+      properties:
+        product_name:
+          type: string
+          maxLength: 255
+          description: Name of the product
+        quantity:
+          type: integer
+          minimum: 1
+          description: Quantity of the product
+        unit_price:
+          type: integer
+          minimum: 1
+          description: Unit price of the product
+      required:
+        - product_name
+        - quantity
+        - unit_price
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            customer_name: ["The customer name field is required."]
+            customer_email: ["The customer email must be a valid email address."]

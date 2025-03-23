@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/equanimity-developer/laravel-invoice-service/branch/main/graph/badge.svg)](https://codecov.io/gh/equanimity-developer/laravel-invoice-service)
+
 # Invoice Management System Documentation
 
 ## Table of Contents
@@ -9,6 +11,7 @@
 6. [Internationalization](#internationalization)
 7. [Testing](#testing)
 8. [Error Handling](#error-handling)
+9. [API Documentation](#api-documentation)
 
 ## Introduction
 
@@ -308,4 +311,44 @@ The system handles several types of errors:
   - `InvalidInvoiceStatusTransitionException`: When an invalid status change is attempted
   - `InvalidProductLineException`: When product lines have invalid data
 
-All errors return appropriate HTTP status codes and descriptive messages from translation files. 
+All errors return appropriate HTTP status codes and descriptive messages from translation files.
+
+## API Documentation
+
+The project includes a comprehensive OpenAPI specification that documents all available API endpoints, request/response formats, and data schemas.
+
+### OpenAPI Specification
+
+The API documentation is available in OpenAPI 3.0.3 format in the file `openapi.yaml` at the root of the project.
+
+Key components documented:
+
+1. **API Endpoints**:
+   - GET `/invoices` - List all invoices
+   - POST `/invoices` - Create a new invoice
+   - GET `/invoices/{id}` - Get invoice by ID
+   - POST `/invoices/{id}/product-lines` - Add a product line to an invoice
+   - POST `/invoices/{id}/send` - Send an invoice to a customer
+   - GET `/notification/hook/{action}/{reference}` - Webhook for notification events
+
+2. **Data Schemas**:
+   - Invoice - Complete invoice structure with all fields
+   - ProductLine - Structure of invoice line items
+   - CreateInvoiceRequest - Format for invoice creation requests
+   - AddProductLineRequest - Format for adding product lines
+
+### Viewing the Documentation
+
+You can view and interact with the API documentation using any OpenAPI compatible tool:
+
+1. **Swagger UI**: 
+   - Open [Swagger Editor](https://editor.swagger.io/) and import the `openapi.yaml` file
+   - Or run Swagger UI locally: `docker run -p 80:8080 -e SWAGGER_JSON=/openapi.yaml -v $(pwd)/openapi.yaml:/openapi.yaml swaggerapi/swagger-ui`
+
+2. **Redoc**:
+   - For a more readable version: `docker run -p 80:80 -e SPEC_URL=openapi.yaml -v $(pwd)/openapi.yaml:/usr/share/nginx/html/openapi.yaml redocly/redoc`
+
+3. **Postman**:
+   - Import the OpenAPI specification directly into Postman for testing the API
+
+The OpenAPI specification serves as both documentation and a contract for API integration, ensuring consistency between implementation and documentation. 
